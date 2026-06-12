@@ -1,6 +1,8 @@
 "use client"
 
 import {
+  createContext,
+  useContext,
   useRef,
   type ComponentPropsWithoutRef,
   type FC,
@@ -9,44 +11,88 @@ import {
 import { motion, MotionValue, useScroll, useTransform } from "motion/react"
 
 import { cn } from "@/lib/utils"
+import { Highlighter } from "@/components/ui/highlighter"
 
 /* ------------------------------------------------------------------ */
-/*  Word-level scroll-reveal that works INLINE inside any text block. */
-/*  No sticky positioning or extra scroll height — it simply maps     */
-/*  the parent container's scroll progress to per-word opacity.       */
+/*  Shared scroll context — one progress value for an entire block    */
 /* ------------------------------------------------------------------ */
 
-export interface TextRevealProps extends ComponentPropsWithoutRef<"span"> {
-  children: string
-  /** How far the scroll-trigger starts before entering the viewport.
-   *  Negative = start earlier. E.g. "-20% 0px -20% 0px"              */
-  offset?: string
+interface RevealContextValue {
+  progress: MotionValue<number>
+  totalWords: number
 }
 
-export const TextReveal: FC<TextRevealProps> = ({
+const RevealContext = createContext<RevealContextValue | null>(null)
+
+/* ------------------------------------------------------------------ */
+/*  TextRevealBlock — wraps a paragraph with one scrollYProgress      */
+/* ------------------------------------------------------------------ */
+
+export interface TextRevealBlockProps
+  extends ComponentPropsWithoutRef<"p"> {
+  /** Total number of words across ALL children for even pacing */
+  wordCount: number
+}
+
+export const TextRevealBlock: FC<TextRevealBlockProps> = ({
   children,
   className,
-  offset = "-20% 0px -35% 0px",
+  wordCount,
+  ...props
 }) => {
-  const containerRef = useRef<HTMLSpanElement | null>(null)
+  const ref = useRef<HTMLParagraphElement | null>(null)
+
   const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start 0.9", "start 0.25"],
+    target: ref,
+    offset: ["start 0.9", "start 0.15"],
   })
 
+  return (
+    <RevealContext.Provider
+      value={{ progress: scrollYProgress, totalWords: wordCount }}
+    >
+      <p ref={ref} className={className} {...props}>
+        {children}
+      </p>
+    </RevealContext.Provider>
+  )
+}
+
+/* ------------------------------------------------------------------ */
+/*  TextRevealWords — plain text with scroll-reveal                   */
+/* ------------------------------------------------------------------ */
+
+export interface TextRevealWordsProps
+  extends ComponentPropsWithoutRef<"span"> {
+  children: string
+  /** Starting word index within the paragraph (0-based) */
+  startIndex: number
+}
+
+export const TextRevealWords: FC<TextRevealWordsProps> = ({
+  children,
+  className,
+  startIndex,
+}) => {
+  const ctx = useContext(RevealContext)
+
+  if (!ctx) {
+    throw new Error("TextRevealWords must be used inside a TextRevealBlock")
+  }
   if (typeof children !== "string") {
-    throw new Error("TextReveal: children must be a string")
+    throw new Error("TextRevealWords: children must be a string")
   }
 
-  const words = children.split(" ")
+  const words = children.split(/\s+/).filter(Boolean)
 
   return (
-    <span ref={containerRef} className={cn("inline", className)}>
+    <span className={cn("inline", className)}>
       {words.map((word, i) => {
-        const start = i / words.length
-        const end = start + 1 / words.length
+        const globalIndex = startIndex + i
+        const start = globalIndex / ctx.totalWords
+        const end = start + 1 / ctx.totalWords
         return (
-          <Word key={i} progress={scrollYProgress} range={[start, end]}>
+          <Word key={i} progress={ctx.progress} range={[start, end]}>
             {word}
           </Word>
         )
@@ -56,60 +102,70 @@ export const TextReveal: FC<TextRevealProps> = ({
 }
 
 /* ------------------------------------------------------------------ */
-/*  Highlighted variant — same reveal but keeps a custom color/style  */
+/*  TextRevealHighlighted — scroll-reveal + rough-notation highlight  */
 /* ------------------------------------------------------------------ */
 
-export interface TextRevealHighlightProps
+export interface TextRevealHighlightedProps
   extends ComponentPropsWithoutRef<"span"> {
   children: string
-  /** Total number of words BEFORE this span in the paragraph,
-   *  so the reveal timing stays continuous across fragments.        */
-  wordOffset?: number
-  /** Total word count of the entire paragraph for consistent pacing */
-  totalWords?: number
+  /** Starting word index within the paragraph (0-based) */
+  startIndex: number
+  /** Highlighter action type */
+  action?: "highlight" | "underline" | "box" | "circle" | "strike-through" | "crossed-off" | "bracket"
+  /** Highlighter color */
+  color?: string
+  /** Highlighter stroke width */
+  strokeWidth?: number
+  /** Animation duration in ms */
+  animationDuration?: number
 }
 
-export const TextRevealHighlight: FC<TextRevealHighlightProps> = ({
+export const TextRevealHighlighted: FC<TextRevealHighlightedProps> = ({
   children,
   className,
-  wordOffset = 0,
-  totalWords,
+  startIndex,
+  action = "highlight",
+  color = "#ffd1dc",
+  strokeWidth = 1.5,
+  animationDuration = 600,
 }) => {
-  const containerRef = useRef<HTMLSpanElement | null>(null)
-  const { scrollYProgress } = useScroll({
-    target: containerRef,
-    offset: ["start 0.9", "start 0.25"],
-  })
+  const ctx = useContext(RevealContext)
 
+  if (!ctx) {
+    throw new Error("TextRevealHighlighted must be used inside a TextRevealBlock")
+  }
   if (typeof children !== "string") {
-    throw new Error("TextRevealHighlight: children must be a string")
+    throw new Error("TextRevealHighlighted: children must be a string")
   }
 
-  const words = children.split(" ")
-  const total = totalWords ?? words.length + wordOffset
+  const words = children.split(/\s+/).filter(Boolean)
 
   return (
-    <span ref={containerRef} className={cn("inline", className)}>
-      {words.map((word, i) => {
-        const globalIndex = wordOffset + i
-        const start = globalIndex / total
-        const end = start + 1 / total
-        return (
-          <HighlightWord
-            key={i}
-            progress={scrollYProgress}
-            range={[start, end]}
-          >
-            {word}
-          </HighlightWord>
-        )
-      })}
-    </span>
+    <Highlighter
+      action={action}
+      color={color}
+      strokeWidth={strokeWidth}
+      animationDuration={animationDuration}
+      isView={true}
+    >
+      <span className={cn("inline", className)}>
+        {words.map((word, i) => {
+          const globalIndex = startIndex + i
+          const start = globalIndex / ctx.totalWords
+          const end = start + 1 / ctx.totalWords
+          return (
+            <Word key={i} progress={ctx.progress} range={[start, end]}>
+              {word}
+            </Word>
+          )
+        })}
+      </span>
+    </Highlighter>
   )
 }
 
 /* ------------------------------------------------------------------ */
-/*  Internal word components                                          */
+/*  Internal Word component                                           */
 /* ------------------------------------------------------------------ */
 
 interface WordProps {
@@ -120,17 +176,6 @@ interface WordProps {
 
 const Word: FC<WordProps> = ({ children, progress, range }) => {
   const opacity = useTransform(progress, range, [0.15, 1])
-  return (
-    <span className="relative inline-block mr-[0.27em]">
-      <motion.span style={{ opacity }} className="inline">
-        {children}
-      </motion.span>
-    </span>
-  )
-}
-
-const HighlightWord: FC<WordProps> = ({ children, progress, range }) => {
-  const opacity = useTransform(progress, range, [0.2, 1])
   return (
     <span className="relative inline-block mr-[0.27em]">
       <motion.span style={{ opacity }} className="inline">
