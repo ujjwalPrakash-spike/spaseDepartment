@@ -9,7 +9,7 @@ export default function DotField() {
     const canvas = canvasRef.current;
     if (!canvas) return;
 
-    const ctx = canvas.getContext("2d");
+    const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
     let width = window.innerWidth;
@@ -18,8 +18,17 @@ export default function DotField() {
     // High DPI support for sharp dots on Retina displays
     const dpr = window.devicePixelRatio || 1;
     
-    const spacing = 70  ; // Distance between dots to match previous backgroundSize
-    const dotRadius = 1.5; // Size of dots
+    // Grid spacing (adjust to change density)
+    const spacing = 70; 
+    const dotRadius = 1.5; 
+    
+    // Physics properties
+    const repelRadius = 120;
+    const repelRadiusSq = repelRadius * repelRadius; // Pre-calculated for massive performance boost
+    const repelForce = 0.6; 
+    const returnForce = 0.15; 
+
+    // Using Float32Array for better memory performance if needed, but standard array is fine here.
     let dots: { x: number, y: number, originX: number, originY: number }[] = [];
 
     const initDots = () => {
@@ -27,7 +36,6 @@ export default function DotField() {
       const cols = Math.floor(width / spacing) + 2;
       const rows = Math.floor(height / spacing) + 2;
       
-      // Center the grid slightly based on remainder
       const offsetX = (width % spacing) / 2;
       const offsetY = (height % spacing) / 2;
 
@@ -54,7 +62,7 @@ export default function DotField() {
       initDots();
     };
 
-    window.addEventListener("resize", resize);
+    window.addEventListener("resize", resize, { passive: true });
     resize();
 
     const mouse = { x: -1000, y: -1000 };
@@ -69,33 +77,31 @@ export default function DotField() {
       mouse.y = -1000;
     };
 
-    window.addEventListener("mousemove", onMouseMove);
-    window.addEventListener("mouseleave", onMouseLeave);
+    window.addEventListener("mousemove", onMouseMove, { passive: true });
+    window.addEventListener("mouseleave", onMouseLeave, { passive: true });
 
     let animationFrameId: number;
 
     const render = () => {
       ctx.clearRect(0, 0, width, height);
-      ctx.fillStyle = "rgba(0, 0, 0, 0.25)"; // Match the opacity: 0.25 from earlier
+      ctx.fillStyle = "rgba(0, 0, 0, 0.25)"; 
 
-      // Physics properties
-      const repelRadius = 120; // How far the mouse affects dots
-      const repelForce = 0.6; // How strongly they are pushed away
-      const returnForce = 0.15; // How fast they spring back to origin
+      // BATCH RENDERING: Massive performance boost by only starting one path
+      ctx.beginPath();
 
       for (let i = 0; i < dots.length; i++) {
         const dot = dots[i];
         
-        // Distance from mouse
+        // Fast distance check using squared values (avoids expensive Math.sqrt)
         const dx = mouse.x - dot.originX;
         const dy = mouse.y - dot.originY;
-        const dist = Math.sqrt(dx * dx + dy * dy);
+        const distSq = dx * dx + dy * dy;
 
         let targetX = dot.originX;
         let targetY = dot.originY;
 
-        if (dist < repelRadius) {
-          // Push away from mouse
+        if (distSq < repelRadiusSq) {
+          const dist = Math.sqrt(distSq); // Only calculate precise distance if collision occurs
           const angle = Math.atan2(dy, dx);
           const force = (repelRadius - dist) * repelForce;
           targetX = dot.originX - Math.cos(angle) * force;
@@ -106,11 +112,13 @@ export default function DotField() {
         dot.x += (targetX - dot.x) * returnForce;
         dot.y += (targetY - dot.y) * returnForce;
 
-        // Draw
-        ctx.beginPath();
+        // Draw dot into the batched path
+        ctx.moveTo(dot.x + dotRadius, dot.y);
         ctx.arc(dot.x, dot.y, dotRadius, 0, Math.PI * 2);
-        ctx.fill();
       }
+
+      // Execute a single fill call for all dots
+      ctx.fill();
 
       animationFrameId = requestAnimationFrame(render);
     };

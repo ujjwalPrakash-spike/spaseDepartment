@@ -1,5 +1,6 @@
 import React from "react";
 import { siteConfig } from "@/config/site";
+import ScrollFloat from "@/components/reactBits/ScrollFloat";
 
 export default function DescriptionSection() {
   const { description } = siteConfig.home;
@@ -13,9 +14,19 @@ export default function DescriptionSection() {
             <span className="text-[#1A4DFF] font-medium">{description.p1Highlight}</span>
             {description.p1End}
           </p>
-          <p>
-            {description.p2}
-          </p>
+          <div className="-ml-1">
+            <ScrollFloat
+              animationDuration={1}
+              ease="back.inOut(2)"
+              scrollStart="center bottom+=50%"
+              scrollEnd="bottom bottom-=40%"
+              stagger={0.03}
+              containerClassName="!my-0"
+              textClassName="!text-[32px] md:!text-[48px] lg:!text-[60px] !font-light !leading-[1.1] !tracking-[-0.03em]"
+            >
+              {description.p2}
+            </ScrollFloat>
+          </div>
         </div>
       </div>
     </section>

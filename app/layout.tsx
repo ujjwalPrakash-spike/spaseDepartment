@@ -4,8 +4,8 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 import Navbar from "@/components/navbar";
-import CursorOrb from "@/components/CursorOrb";
-import DotField from "@/components/DotField";
+import CursorOrb from "@/components/reactBits/CursorOrb";
+import DotField from "@/components/reactBits/DotField";
 import Providers from "@/components/animationSmooth/LenisProvider";
 
 const inter = Inter({

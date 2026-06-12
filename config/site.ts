@@ -19,7 +19,7 @@ export const siteConfig = {
 
   home: {
     hero: {
-      titleLine1: "Developer Meet",
+      titleLine1: "Developer Meeting",
       titleLine2: "& Distributed",
       titleHighlight: "Engineering",
 
