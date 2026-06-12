@@ -6,7 +6,7 @@ export const siteConfig = {
       line1: "Software Engineering",
       line2: "Systems • Backend • AI",
     },
-    links: [
+    links: [  
       { label: "Speakers", href: "/speakers" },
       { label: "Schedule", href: "/schedule" },
       { label: "Sessions", href: "/sessions" },
@@ -42,5 +42,24 @@ export const siteConfig = {
       p2:
         "Join discussions on distributed systems, cloud infrastructure, AI-assisted development, databases, performance optimization, and production-grade architecture. Learn from experienced engineers, exchange ideas, and discover the technologies shaping the next generation of software.",
     },
+  },
+  
+  footer: {
+    brand: "UJJWAL.PRAKASH",
+    location: "Global Summit",
+    copyright: "© 2026 Ujjwal Prakash. All rights reserved.",
+    creator: "Made with love by ujjwal.prakash",
+    links: [
+      { label: "Code of conduct", href: "/code-of-conduct" },
+      { label: "Sponsorship plans", href: "/sponsors" },
+      { label: "FAQs", href: "/faqs" },
+    ],
+    socials: [
+      { label: "Twitter", href: "https://twitter.com" },
+      { label: "Instagram", href: "https://instagram.com" },
+      { label: "Linkedin", href: "https://linkedin.com" },
+      { label: "Youtube", href: "https://youtube.com" },
+      { label: "Facebook", href: "https://facebook.com" },
+    ],
   },
 };

@@ -4,6 +4,7 @@ import { Geist, Geist_Mono, Inter } from "next/font/google";
 import "./globals.css";
 
 import Navbar from "@/components/navbar";
+import Footer from "@/components/footer";
 import CursorOrb from "@/components/reactBits/CursorOrb";
 import DotField from "@/components/reactBits/DotField";
 import Providers from "@/components/animationSmooth/LenisProvider";
@@ -38,12 +39,13 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
     >
-      <body className="min-h-screen flex flex-col pt-[70px] cursor-default bg-[#dee1e4]">
+      <body className="min-h-screen flex flex-col pt-[70px] cursor-default bg-[#dee1e4] overflow-x-hidden">
         <Providers>
           <DotField />
           <CursorOrb />
           <Navbar />
           {children}
+          <Footer />
         </Providers>
       </body>
     </html>
