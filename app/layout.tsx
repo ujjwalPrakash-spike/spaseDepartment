@@ -5,6 +5,7 @@ import "./globals.css";
 
 import Navbar from "@/components/navbar";
 import CursorOrb from "@/components/CursorOrb";
+import DotField from "@/components/DotField";
 import Providers from "@/components/animationSmooth/LenisProvider";
 
 const inter = Inter({
@@ -37,8 +38,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} ${inter.variable} antialiased`}
     >
-      <body className="min-h-screen flex flex-col pt-[70px] cursor-default">
+      <body className="min-h-screen flex flex-col pt-[70px] cursor-default bg-[#F0F0EF]">
         <Providers>
+          <DotField />
           <CursorOrb />
           <Navbar />
           {children}
